@@ -9,6 +9,7 @@
 #include<arpa/inet.h>
 #include<netinet/in.h>
 #include<signal.h>
+#include<dirent.h>
 
 #define PORT 8888
 #define MAXLINE 1024
@@ -188,12 +189,39 @@ int main(){
 			}
 			else if(strncmp(buffer,"LIST",4) == 0){
 				//处理列表请求
+				DIR *mydir = NULL;
+				struct dirent *myitem = NULL;
+				memset(buffer,0,MAXLINE);
+				read(new_socket,buffer,MAXLINE);
+				if(strncmp(buffer,"LISTOK",6) != 0){
+					continue;
+				}
+				//printf("LISTOK\n");
+				if((mydir = opendir(".")) == NULL){
+					perror("opendir");
+					exit(3);
+				}
+				
+				while((myitem = readdir(mydir)) != NULL){
+					memset(buffer,0,MAXLINE);
+					if(sprintf(buffer,myitem -> d_name,MAXLINE) < 0){
+						printf("Sprintf error!\n");
+						exit(3);
+					}
+					if(write(new_socket,buffer,MAXLINE) < 0){
+						perror("write");
+						exit(1);
+					}
+					//printf("%s",buffer);
+					//printf("1\n");
+				}
+				write(new_socket,"exit",4);
+				closedir(mydir);
 			}
 			else if(strncmp(buffer,"DELETE",6) == 0){
 				//处理删除请求
-			}
-			else if(strncmp(buffer,"MOVE",4) == 0){
-				//处理移动文件请求
+				memset(buffer,0,MAXLINE);
+				
 			}
 			else if(strncmp(buffer,"EXIT",4) == 0){
 				printf("Disconnecting from client!\n");

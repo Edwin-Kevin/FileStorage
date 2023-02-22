@@ -56,7 +56,7 @@ int main(int argc,char *argv[]){
 	
 	while(1){
 		//读取用户输入的命令并发送
-		printf("COMMAND:UPLOAD|DOWNLOAD|LIST|DELETE|MOVE|EXIT\n");
+		printf("COMMAND:UPLOAD|DOWNLOAD|LIST|DELETE|MOVE\n");
 		fgets(buffer,MAXLINE,stdin);      //读取用户输入的命令
 		buffer[strlen(buffer) - 1] = '\0';
 		
@@ -170,12 +170,30 @@ int main(int argc,char *argv[]){
 		/*这里开始列表部分*/
 		else if(strncmp(buffer,"LIST",4) == 0){
 			//列出文件列表
+			if(send(sockfd,"LIST",4,0) == -1){
+				perror("send");
+				exit(2);
+			}
+			
+			memset(buffer,0,MAXLINE);
+			recv(sockfd,buffer,MAXLINE,0);
+			if(strncmp(buffer,"COMMANDOK",9) == 0){
+				memset(buffer,0,MAXLINE);
+				send(sockfd,"LISTOK",6,0);
+				while(read(sockfd,buffer,MAXLINE) > 0){
+					if(strncmp(buffer,"exit",4) != 0){
+						printf(" %s",buffer);
+						memset(buffer,0,MAXLINE);
+					}
+					else{
+						printf("\n");
+						break;
+					}
+				}
+			}
 		}
 		else if(strncmp(buffer,"DELETE",6) == 0){
 			//删除指定文件
-		}
-		else if(strncmp(buffer,"MOVE",4) == 0){
-			//移动指定文件
 		}
 		else if(strncmp(buffer,"EXIT",4) == 0){
 			if(send(sockfd,"EXIT",6,0) == -1){
