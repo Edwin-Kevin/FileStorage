@@ -99,6 +99,7 @@ int main(int argc,char *argv[]){
 						//判断上次发送数据是否成功
 						read(sockfd,buffer,MAXLINE);
 						if(strncmp(buffer,"DATAOK",6) != 0){
+							//发送数据出错，退出上传
 							send(sockfd,"SKIP",4,0);
 							printf("Failed to transer file.\n");
 							break;
@@ -106,11 +107,13 @@ int main(int argc,char *argv[]){
 						memset(buffer,0,MAXLINE);
 						memset(filebuf,0,MAXLINE);
 					}
+					//发送完毕，退出上传
 					send(sockfd,"exit",4,0);
 					close(filefd);
 					printf("Upload completed!\n");
 				}
 				else{
+					//服务端创建文件描述符失败
 					printf("Server cannot create file.\n");
 					close(filefd);
 				}
@@ -150,15 +153,18 @@ int main(int argc,char *argv[]){
 					//清空文件缓存，准备写入
 					memset(filebuf,0,MAXLINE);
 					while((filecnt = read(sockfd,filebuf,MAXLINE)) > 0){
+						//下载完毕，退出下载
 						if(strncmp(filebuf,"exit",4) == 0){
 							printf("Download completed!\n");
 							break;
 						}
+						//写入失败，退出下载
 						if(write(filefd,filebuf,filecnt) != filecnt){
 							write(sockfd,"fail",4);
 							printf("File transfer failed!\n");
 							break;
 						}
+						//向服务端发送数据接收确认
 						write(sockfd,"DATAOK",6);
 						memset(filebuf,0,MAXLINE);
 					}
@@ -179,13 +185,16 @@ int main(int argc,char *argv[]){
 			recv(sockfd,buffer,MAXLINE,0);
 			if(strncmp(buffer,"COMMANDOK",9) == 0){
 				memset(buffer,0,MAXLINE);
+				//告诉服务端客户端准备好接收列表
 				send(sockfd,"LISTOK",6,0);
+				//循环读取文件列表中的文件名
 				while(read(sockfd,buffer,MAXLINE) > 0){
 					if(strncmp(buffer,"exit",4) != 0){
 						printf(" %s",buffer);
 						memset(buffer,0,MAXLINE);
 					}
 					else{
+						//接收列表完毕
 						printf("\n");
 						break;
 					}
@@ -194,8 +203,31 @@ int main(int argc,char *argv[]){
 		}
 		else if(strncmp(buffer,"DELETE",6) == 0){
 			//删除指定文件
+			if(send(sockfd,"DELETE",6) == -1){
+				perror("send");
+				exit(2);
+			}
+			
+			memset(buffer,0,MAXLINE);
+			printf("Please enter filename:\n");
+			fgets(filename,MAXLINE,stdin);
+			filename[strlen(filename) - 1] = '\0';
+			//发送要删除的文件名
+			send(sockfd,filename,strlen(filename),0);
+			//等待服务端操作结果
+			recv(sockfd,buffer,MAXLINE,0);
+			//服务器成功移除文件
+			if(strncmp(buffer,"REMOVEOK",8) == 0){
+				printf("Removed %s\n",filename);
+			}
+			//没有找到文件
+			else if(strncmp(buffer,"NOFILE",6) == 0){
+				printf("File %s not found!\n",filename);
+			}
 		}
 		else if(strncmp(buffer,"EXIT",4) == 0){
+			//退出客户端程序
+			//告诉服务端准备断开连接
 			if(send(sockfd,"EXIT",6,0) == -1){
 				perror("send");
 				exit(2);

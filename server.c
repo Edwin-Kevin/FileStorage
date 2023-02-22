@@ -105,6 +105,7 @@ int main(){
 				
 				//获取文件名
 				read(new_socket,buffer,MAXLINE);
+				//客户端没找到文件
 				if(strncmp(buffer,"SKIP",4) == 0){
 					printf("Failed to fetch filename.\n");
 					continue;
@@ -112,6 +113,7 @@ int main(){
 				
 				//创建新文件
 				filefd = open(buffer,O_WRONLY | O_CREAT | O_TRUNC,0757);
+				//创建文件失败
 				if(filefd == -1){
 					printf("Failed to create new file!\n");
 					send(new_socket,"fail",4,0);
@@ -125,6 +127,7 @@ int main(){
 				//开始写入文件
 				memset(filebuf,0,MAXLINE);
 				while((filecnt = read(new_socket,filebuf,MAXLINE)) > 0){
+					//上传完毕的检测条件
 					if(strncmp(filebuf, "exit", 4) == 0){
 						printf("Upload completed!\n");
 						break;
@@ -135,6 +138,7 @@ int main(){
 						printf("File transfer failed!\n");
 						break;
 					}
+					//确认接收到了上一批数据
 					write(new_socket,"DATAOK",6);
 					memset(filebuf,0,MAXLINE);
 				}
@@ -154,8 +158,10 @@ int main(){
 					perror("open");
 					continue;
 				}
+				//打开文件成功
 				send(new_socket,"FILEOK",6,0);
 				read(new_socket,buffer,MAXLINE);
+				//客户端创建文件失败
 				if(strncmp(buffer,"SKIP",4) == 0){
 					printf("Client failed to open file!\n");
 					continue;
@@ -164,6 +170,7 @@ int main(){
 				if(strncmp(buffer,"FILEOK",6) == 0){
 					memset(filebuf,0,MAXLINE);
 					while((filecnt = read(filefd,filebuf,MAXLINE)) > 0){
+						//发送数据失败
 						if(write(new_socket,filebuf,filecnt) != filecnt){
 							printf("Send file failed!\n");
 							break;
@@ -177,6 +184,7 @@ int main(){
 						memset(filebuf,0,MAXLINE);
 						memset(buffer,0,MAXLINE);
 					}
+					//数据发送完毕，发送退出信号
 					send(new_socket,"exit",4,0);
 					close(filefd);
 					printf("Download completed!\n");
@@ -193,15 +201,16 @@ int main(){
 				struct dirent *myitem = NULL;
 				memset(buffer,0,MAXLINE);
 				read(new_socket,buffer,MAXLINE);
+				//客户端准备好接收列表
 				if(strncmp(buffer,"LISTOK",6) != 0){
 					continue;
 				}
-				//printf("LISTOK\n");
+				//循环读取列表中的文件
 				if((mydir = opendir(".")) == NULL){
 					perror("opendir");
 					exit(3);
 				}
-				
+				//依次发送文件名
 				while((myitem = readdir(mydir)) != NULL){
 					memset(buffer,0,MAXLINE);
 					if(sprintf(buffer,myitem -> d_name,MAXLINE) < 0){
@@ -215,16 +224,28 @@ int main(){
 					//printf("%s",buffer);
 					//printf("1\n");
 				}
+				//列表发送完毕
 				write(new_socket,"exit",4);
 				closedir(mydir);
 			}
 			else if(strncmp(buffer,"DELETE",6) == 0){
 				//处理删除请求
 				memset(buffer,0,MAXLINE);
-				
+				//读取要删除的文件名
+				read(new_socket,buffer,MAXLINE);
+				if(remove(buffer) == 0){
+					//删除成功
+					printf("Removed %s.\n",buffer);
+					write(new_socket,"REMOVEOK",8);
+				}
+				else{
+					//没找到删除的文件
+					write(new_socket,"NOFILE",6);
+				}
 			}
 			else if(strncmp(buffer,"EXIT",4) == 0){
-				printf("Disconnecting from client!\n");
+				//客户端主动断开连接
+				printf("Disconnecting from client %s!\n",inet_ntoa(remote_addr.sin_addr));
 				break;
 			}
 			memset(buffer,0,MAXLINE);
