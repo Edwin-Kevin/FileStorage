@@ -4,5 +4,5 @@
 ## 二进制文件
 客户端和服务端的文件在Ubuntu 18.04 LTS上完成编译，其他平台可以自行下载源码进行编译。点击[release](github.com/Edwin-Kevin/FileStorage/latest-release)下载二进制文件。
 ***
-##免责声明
+## 免责声明
 本源码仅用于个人学习所用，**不对代码的安全性作任何保证**。
