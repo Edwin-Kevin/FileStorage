@@ -33,6 +33,10 @@ int main(int argc,char *argv[]){
 	serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	bzero(&(serv_addr.sin_zero),8);
 	
+	printf("Kevin's filestorage.\n");
+	printf("Compiled on Feb 23rd, 2023\n");
+	printf("Github: https://github.com/Edwin-Kevin/FileStorage\n");
+	
 	//向服务器端发起连接
 	if(connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr)) < 0){
 		perror("connect");
@@ -56,7 +60,7 @@ int main(int argc,char *argv[]){
 	
 	while(1){
 		//读取用户输入的命令并发送
-		printf("COMMAND:UPLOAD|DOWNLOAD|LIST|DELETE|MOVE\n");
+		printf("COMMAND:UPLOAD|DOWNLOAD|LIST|DELETE|EXIT\n");
 		fgets(buffer,MAXLINE,stdin);      //读取用户输入的命令
 		buffer[strlen(buffer) - 1] = '\0';
 		
@@ -203,11 +207,16 @@ int main(int argc,char *argv[]){
 		}
 		else if(strncmp(buffer,"DELETE",6) == 0){
 			//删除指定文件
-			if(send(sockfd,"DELETE",6) == -1){
+			if(send(sockfd,"DELETE",6,0) == -1){
 				perror("send");
 				exit(2);
 			}
 			
+			memset(buffer,0,MAXLINE);
+			read(sockfd,buffer,MAXLINE);
+			if(strncmp(buffer,"COMMANDOK",9) != 0){
+				continue;
+			}
 			memset(buffer,0,MAXLINE);
 			printf("Please enter filename:\n");
 			fgets(filename,MAXLINE,stdin);

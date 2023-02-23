@@ -95,7 +95,6 @@ int main(){
 			valread  = read(new_socket,buffer,MAXLINE);
 			printf("%s\n",buffer);
 			send(new_socket,"COMMANDOK",9,0);    //告诉客户端，服务端收到了操作指令
-			printf("COMMANDOK\n");
 		
 			//解析客户端的请求
 			if(strncmp(buffer,"UPLOAD",6) == 0){
